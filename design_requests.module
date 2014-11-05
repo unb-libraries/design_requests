@@ -126,6 +126,9 @@ function _design_request_form($form, &$form_state) {
     #form-container {
       display: none;
     }
+    p.description {
+      margin-bottom: 35px;
+    }
   ', 'inline');
 
   $form['supervisor_approved'] = array(
@@ -194,21 +197,21 @@ function _design_request_form($form, &$form_state) {
     $form['form-container']['project']['graphic_material'] = array(
       '#type' => 'textarea',
       '#title' => 'Graphic material request',
-      '#description' => 'i.e., Brochure, poster, website design, image, etc.',
+      '#suffix' => '<p class="description">(i.e., Brochure, poster, website design, image, etc.)</p>',
       '#required' => TRUE,
     );
 
     $form['form-container']['project']['content'] = array(
       '#type' => 'textarea',
       '#title' => 'Content',
-      '#description' => 'Provide necessary: images, logos, date, text, themes, sizes, etc.',
+      '#suffix' => '<p class="description">(Provide necessary: images, logos, date, text, themes, sizes, etc.)</p>',
       '#required' => TRUE,
     );
 
     $form['form-container']['project']['target'] = array(
       '#type' => 'textarea',
       '#title' => 'Target Audience',
-      '#description' => 'i.e., Faculty, students, general public, UNB/STU, etc.',
+      '#suffix' => '<p class="description">(i.e., Faculty, students, general public, UNB/STU, etc.)</p>',
       '#required' => TRUE,
     );
 
