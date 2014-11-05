@@ -95,6 +95,20 @@ function _design_request_form($form, &$form_state) {
     break;
   }
 
+  drupal_add_js("
+    jQuery(document).ready(function() {
+      jQuery('#edit-supervisor-approved').change(function() {
+        if (jQuery(this).is(':checked')) {
+          jQuery('#form-container').slideDown();
+        }
+        else {
+          jQuery('#form-container').slideUp();
+        }
+      });
+    });
+  ", 'inline'
+  );
+
   drupal_add_css('
     div.form-managed-file {
       margin-bottom: 15px;
@@ -108,100 +122,101 @@ function _design_request_form($form, &$form_state) {
     .container-inline-date .date-padding {
       padding-left: 0;
     }
+    #form-container {
+      display: none;
+    }
   ', 'inline');
-
-  $form['#prefix'] = '<div id="form-container">';
-  $form['#suffix'] = '</div>';
 
   $form['supervisor_approved'] = array(
     '#type' => 'checkbox',
     '#title' => 'Unit manager is aware of and supports this request.',
     '#required' => TRUE,
-      '#ajax' => array(
-        'callback' => '_design_request_ajax_supervisor_approved_callback',
-        'wrapper' => 'form-container',
-      ),
   );
 
-  if (isset($form_state['values']['supervisor_approved']) && $form_state['values']['supervisor_approved'] == 1) {
+  $form['form-container'] = array(
+    '#type' => 'container',
+    '#title' => 'FormC ontainer',
+    '#prefix' => '<div id="form-container">',
+    '#suffix' => '</div>',
+  );
 
-    $form['contact'] = array(
+    $form['form-container']['contact'] = array(
       '#type' => 'fieldset',
       '#title' => 'Contact Information',
     );
 
-    $form['contact']['name'] = array(
+    $form['form-container']['contact']['name'] = array(
       '#type' => 'textfield',
       '#title' => 'Name',
       '#default_value' => $first_name . " " . $last_name,
       '#required' => TRUE,
     );
 
-    $form['contact']['department'] = array(
+    $form['form-container']['contact']['department'] = array(
       '#type' => 'textfield',
       '#title' => 'Department',
       '#required' => TRUE,
     );
 
-    $form['contact']['email'] = array(
+    $form['form-container']['contact']['email'] = array(
       '#type' => 'textfield',
       '#title' => 'Email',
       '#default_value' => $email,
       '#required' => TRUE,
     );
 
-    $form['contact']['phone'] = array(
+    $form['form-container']['contact']['phone'] = array(
       '#type' => 'textfield',
       '#title' => 'Phone',
       '#default_value' => $phone_number,
       '#required' => TRUE,
     );
 
-    $form['project'] = array(
+    $form['form-container']['project'] = array(
       '#type' => 'fieldset',
       '#title' => 'Project Information',
     );
 
-    $form['project']['deadline'] = array(
+    $form['form-container']['project']['deadline'] = array(
       '#type' => 'date_popup',
       '#title' => 'Deadline',
       '#required' => TRUE,
       '#date_format' => 'Y-m-d',
     );
 
-    $form['project']['about'] = array(
+    $form['form-container']['project']['about'] = array(
       '#type' => 'textarea',
       '#title' => 'About the project',
       '#required' => TRUE,
     );
 
-    $form['project']['graphic_material'] = array(
+    $form['form-container']['project']['graphic_material'] = array(
       '#type' => 'textarea',
       '#title' => 'Graphic material request',
       '#description' => 'i.e., Brochure, poster, website design, image, etc.',
       '#required' => TRUE,
     );
 
-    $form['project']['content'] = array(
+    $form['form-container']['project']['content'] = array(
       '#type' => 'textarea',
       '#title' => 'Content',
       '#description' => 'Provide necessary: images, logos, date, text, themes, sizes, etc.',
       '#required' => TRUE,
     );
 
-    $form['project']['target'] = array(
+    $form['form-container']['project']['target'] = array(
       '#type' => 'textarea',
       '#title' => 'Target Audience',
       '#description' => 'i.e., Faculty, students, general public, UNB/STU, etc.',
       '#required' => TRUE,
     );
 
-    $form['files'] = array(
+    $form['form-container']['files'] = array(
       '#type' => 'fieldset',
       '#title' => 'Files',
     );
 
-    $form['files']['file_input_container'] = array(
+    $form['form-container']['files']['file_input_container'] = array(
       '#type' => 'container',
       '#title' => 'File Input Container',
       '#prefix' => '<div id="files-wrapper"><p>You may upload up to three files to accompany your request. If you have more than three files, you may upload a .zip file instead. Permitted file extensions include: .png, .gif, .jpg, .doc, .docx, .pdf, and .zip.</p>',
@@ -209,7 +224,7 @@ function _design_request_form($form, &$form_state) {
     );
 
     for ($i=1; $i<=3; $i++) {
-      $form['files']['file_input_container']['file' . $i] = array(
+      $form['form-container']['files']['file_input_container']['file' . $i] = array(
         '#title' => 'File ' . $i,
         '#title_display' => 'invisible',
         '#type' => 'managed_file',
@@ -218,19 +233,14 @@ function _design_request_form($form, &$form_state) {
       );
     }
 
-    $form['submit'] = array(
+    $form['form-container']['submit'] = array(
       '#type' => 'submit',
       '#title' => 'Submit',
       '#value' => 'Submit',
       '#submit' => array('_design_request_submit'),
       '#prefix' => '<p>Please note: Once the request is approved, 1 draft will be provided for which revisions can be made. The final graphic will be received by the agreed-upon deadline.</p>',
     );
-  }
 
-  return $form;
-}
-
-function _design_request_ajax_supervisor_approved_callback($form, &$form_state) {
   return $form;
 }
 
