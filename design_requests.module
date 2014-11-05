@@ -135,7 +135,6 @@ function _design_request_form($form, &$form_state) {
       '#title' => 'Name',
       '#default_value' => $first_name . " " . $last_name,
       '#required' => TRUE,
-      '#disabled' => TRUE,
     );
 
     $form['contact']['department'] = array(
@@ -149,7 +148,6 @@ function _design_request_form($form, &$form_state) {
       '#title' => 'Email',
       '#default_value' => $email,
       '#required' => TRUE,
-      '#disabled' => TRUE,
     );
 
     $form['contact']['phone'] = array(
@@ -157,7 +155,6 @@ function _design_request_form($form, &$form_state) {
       '#title' => 'Phone',
       '#default_value' => $phone_number,
       '#required' => TRUE,
-      '#disabled' => TRUE,
     );
 
     $form['project'] = array(
