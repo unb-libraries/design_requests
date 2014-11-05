@@ -383,7 +383,7 @@ function _design_request_create_fogbugz_ticket($token, $form_state) {
  */
 function _design_request_send_confirmation_email($token, $ticket_information) {
   $message = "Your design request has been submitted. Your reference number for this ticket is " . $ticket_information['case_id'] . ".\n\n";
-  $message .= "Ticket Information:\n\n" . $ticket_information['description'] . "\n";
+  $message .= "Your Design Request:\n-----------------------\n\n" . $ticket_information['description'] . "\n";
 
   $curl_handle = curl_init('http://support.lib.unb.ca/api.asp?cmd=forward');
   curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, TRUE);
