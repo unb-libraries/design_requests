@@ -1,0 +1,8 @@
+name = Design Requests
+core = 7.x
+package = UNB Library
+description = A module that displays a form for submitting a design request and, when submitted, creates a corresponding ticket in FogBugz and sends the user a confirmation email.
+project = design_requests
+features[features_api][] = api:2
+
+configure = admin/config/design-requests/fogbugz

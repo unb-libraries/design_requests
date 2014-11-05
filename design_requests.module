@@ -1,0 +1,394 @@
+<?php
+/**
+ * @file
+ * Design Requests Module for Drupal 7.x
+ *
+ * This module displays a form for submitting a design request and,
+ * when submitted, creates a corresponding ticket in FogBugz and
+ * sends the user a confirmation email.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function design_requests_menu() {
+  $items = array();
+  $items['design-requests'] = array(
+    'title' => 'Fredericton Design Requests',
+    'description' => 'Form for submitting design requests',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_design_request_form'),
+    'access arguments' => array('access design requests'),
+  );
+  $items['admin/config/design-requests/fogbugz'] = array(
+    'title' => 'FogBugz Credentials',
+    'description' => 'Configuration of FogBugz credentials',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_fogbugz_config_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function design_requests_permission() {
+  return array(
+    'access design requests' => array(
+      'title' => t('Access Design Requests module'),
+    )
+  );
+}
+
+/**
+ * Page callback: FogBugz credentials configuration.
+ *
+ * @see design_requests_menu()
+ */
+function _fogbugz_config_form($form, &$form_state) {
+
+  $form['fogbugz_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email'),
+    '#default_value' => variable_get('fogbugz_email'),
+    '#size' => 50,
+    '#maxlength' => 50,
+    '#required' => TRUE,
+    '#prefix' => '<p>Enter the credentials for the FogBugz account that will be used for API calls in this module.</p>',
+  );
+
+  $form['fogbugz_password'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Password'),
+    '#default_value' => variable_get('fogbugz_password'),
+    '#size' => 50,
+    '#maxlength' => 50,
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+/**
+ *
+ * Form constructor for design request.
+ *
+ */
+function _design_request_form($form, &$form_state) {
+
+  global $user;
+  $active_user = user_load($user->uid);
+  $email = $active_user->mail;
+  $phone_number = '';
+  foreach ($active_user->field_phone_number as $lang) {
+    $phone_number = $lang[0]['value'];
+    break;
+  }
+  $first_name = '';
+  foreach ($active_user->field_first_name as $lang) {
+    $first_name = $lang[0]['value'];
+    break;
+  }
+  $last_name = '';
+  foreach ($active_user->field_last_name as $lang) {
+    $last_name = $lang[0]['value'];
+    break;
+  }
+
+  drupal_add_css('
+    div.form-managed-file {
+      margin-bottom: 15px;
+    }
+    label[for="edit-deadline"] {
+      display: block;
+    }
+    .form-item-deadline-date label {
+      display: none;
+    }
+    .container-inline-date .date-padding {
+      padding-left: 0;
+    }
+  ', 'inline');
+
+  $form['#prefix'] = '<div id="form-container">';
+  $form['#suffix'] = '</div>';
+
+  $form['supervisor_approved'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Unit manager is aware of and supports this request.',
+    '#required' => TRUE,
+      '#ajax' => array(
+        'callback' => '_ajax_supervisor_approved_callback',
+        'wrapper' => 'form-container',
+      ),
+  );
+
+  if (isset($form_state['values']['supervisor_approved']) && $form_state['values']['supervisor_approved'] == 1) {
+
+    $form['contact'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Contact Information',
+    );
+
+    $form['contact']['name'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Name',
+      '#default_value' => $first_name . " " . $last_name,
+      '#required' => TRUE,
+      '#disabled' => TRUE,
+    );
+
+    $form['contact']['department'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Department',
+      '#required' => TRUE,
+    );
+
+    $form['contact']['email'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Email',
+      '#default_value' => $email,
+      '#required' => TRUE,
+      '#disabled' => TRUE,
+    );
+
+    $form['contact']['phone'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Phone',
+      '#default_value' => $phone_number,
+      '#required' => TRUE,
+      '#disabled' => TRUE,
+    );
+
+    $form['project'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Project Information',
+    );
+
+    $form['project']['deadline'] = array(
+      '#type' => 'date_popup',
+      '#title' => 'Deadline',
+      '#required' => TRUE,
+      '#date_format' => 'Y-m-d',
+    );
+
+    $form['project']['about'] = array(
+      '#type' => 'textarea',
+      '#title' => 'About the project',
+      '#required' => TRUE,
+    );
+
+    $form['project']['graphic_material'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Graphic material request',
+      '#description' => 'i.e., Brochure, poster, website design, image, etc.',
+      '#required' => TRUE,
+    );
+
+    $form['project']['content'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Content',
+      '#description' => 'Provide necessary: images, logos, date, text, themes, sizes, etc.',
+      '#required' => TRUE,
+    );
+
+    $form['project']['target'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Target Audience',
+      '#description' => 'i.e., Faculty, students, general public, UNB/STU, etc.',
+      '#required' => TRUE,
+    );
+
+    $form['files'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Files',
+    );
+
+    $form['files']['file_input_container'] = array(
+      '#type' => 'container',
+      '#title' => 'File Input Container',
+      '#prefix' => '<div id="files-wrapper"><p>You may upload up to three files to accompany your request. If you have more than three files, you may upload a .zip file instead. Permitted file extensions include: .png, .gif, .jpg, .doc, .docx, .pdf, and .zip.</p>',
+      '#suffix' => '</div>',
+    );
+
+    for ($i=1; $i<=3; $i++) {
+      $form['files']['file_input_container']['file' . $i] = array(
+        '#title' => 'File ' . $i,
+        '#title_display' => 'invisible',
+        '#type' => 'managed_file',
+        '#upload_location' => 'private://design_requests/',
+        '#upload_validators'  => array('file_validate_extensions' => array('png gif jpg doc docx pdf zip')),
+      );
+    }
+
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#title' => 'Submit',
+      '#value' => 'Submit',
+      '#submit' => array('_request_submit'),
+      '#prefix' => '<p>Please note: Once the request is approved, 1 draft will be provided for which revisions can be made. The final graphic will be received by the agreed-upon deadline.</p>',
+    );
+  }
+
+  return $form;
+}
+
+function _ajax_supervisor_approved_callback($form, &$form_state) {
+  return $form;
+}
+
+/**
+ * Form submission handler for the design request form.
+ */
+function _request_submit($form, &$form_state) {
+  $token = _get_fog_bugz_token();
+  if ($token == NULL) {
+    drupal_set_message(t('Connection to FogBugz failed. Please contact the site administrator.'), 'error');
+    return;
+  }
+  $success = _create_fogbugz_ticket($token, $form_state);
+  if ($success) {
+    drupal_set_message(t('Your design request was successfully submitted. You will receive a confirmation email shortly.'));
+  }
+  else {
+    drupal_set_message(t('Your trouble ticket was not successfully submitted. If this error persists, please contact the site administrator.'), 'error');
+  }
+}
+
+/**
+ * Authenticates Mr. Robot through the FogBugz API and generates a token for subsequent API calls.
+ *
+ * @return string
+ *   Token for FogBugz API calls
+ */
+function _get_fog_bugz_token() {
+  $curl_handle = curl_init('http://support.lib.unb.ca/api.asp?cmd=logon');
+
+  curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, TRUE);
+  curl_setopt($curl_handle, CURLOPT_POST, TRUE);
+  $ch_post_data = array(
+    'email' => variable_get('fogbugz_email'),
+    'password' => variable_get('fogbugz_password'),
+  );
+  curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $ch_post_data);
+
+  $curl_response = curl_exec($curl_handle);
+  $token = NULL;
+  if ($curl_response) {
+    $xml = simplexml_load_string($curl_response, 'SimpleXMLElement', LIBXML_NOCDATA);
+    $token = (string) $xml->token;
+  }
+  curl_close($curl_handle);
+
+  return $token;
+
+}
+
+/**
+ * Create a ticket in the FogBugz system based on user input from the ticket form.
+ *
+ * @param string $token
+ *   Token for FogBugz API calls
+ * @param array $form_state
+ *   Form state
+ *
+ * @return bool
+ *   TRUE if ticket creation successfully returned a case ID, FALSE if not
+ */
+function _create_fogbugz_ticket($token, $form_state) {
+
+  $description = "Contact Information:\n" .
+                $form_state['values']['name'] . "\n" .
+                $form_state['values']['department'] . "\n" .
+                $form_state['values']['email'] . "\n" .
+                $form_state['values']['phone'] . "\n\n" .
+                "Deadline:\n" .
+                $form_state['values']['deadline'] . "\n\n" .
+                "About the project:\n" .
+                $form_state['values']['about'] . "\n\n" .
+                "Graphic material request:\n" .
+                $form_state['values']['graphic_material'] . "\n\n" .
+                "Content:\n" .
+                $form_state['values']['content'] . "\n\n" .
+                "Target Audience:\n" .
+                $form_state['values']['target'] . "\n\n";
+
+  $ticket_information = array(
+    'project' => 'Design Requests',
+    'title' => 'Design Request from ' . $form_state['values']['name'],
+    'category' => 'Design Request',
+    'description' => $description,
+    'email' => $form_state['values']['name'] . "<" . $form_state['values']['email'] . ">"
+  );
+
+  $curl_handle = curl_init('http://support.lib.unb.ca/api.asp?cmd=new');
+  curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, TRUE);
+  curl_setopt($curl_handle, CURLOPT_POST, TRUE);
+  curl_setopt($curl_handle, CURLOPT_HTTPHEADER, array("Content-Type:multipart/form-data"));
+  $ch_post_data = array(
+    'token' => $token,
+    'sProject' => $ticket_information['project'],
+    'sTitle' => $ticket_information['title'],
+    'sCategory' => $ticket_information['category'],
+    'sEvent' => $ticket_information['description'],
+    'sCustomerEmail' => $ticket_information['email'],
+    'ixMailbox' => 1,
+  );
+
+  $file_count = 0;
+  foreach ($form_state['values'] as $field_name => $fid) {
+    if (preg_match('/(file)\d/', $field_name) > 0 && $fid > 0) {
+      $file_count++;
+      $file = file_load($fid);
+      $file_uri = drupal_realpath($file->uri);
+      $ch_post_data['File' . $file_count] = '@' . $file_uri;
+    }
+  }
+  $ch_post_data['nFileCount'] = $file_count;
+
+  curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $ch_post_data);
+
+  $curl_response = curl_exec($curl_handle);
+  $success = FALSE;
+  $case_id = NULL;
+  if ($curl_response) {
+    $xml = simplexml_load_string($curl_response, 'SimpleXMLElement', LIBXML_NOCDATA);
+    $case_id = (string) $xml->case['ixBug'];
+    if ($case_id != NULL) {
+      $ticket_information['case_id'] = $case_id;
+      $success = TRUE;
+      _send_confirmation_email($token, $ticket_information);
+    }
+  }
+  curl_close($curl_handle);
+
+  return $success;
+}
+
+/**
+ * Sends an email to the user confirming ticket submission.
+ *
+ * @param string $token
+ *   Token for FogBugz API calls
+ * @param array $ticket_information
+ *   Associative array of information from the newly submitted ticket
+ */
+function _send_confirmation_email($token, $ticket_information) {
+  $message = "Your design request has been submitted. Your reference number for this ticket is " . $ticket_information['case_id'] . ".\n\n";
+  $message .= "Ticket Information:\n\n" . $ticket_information['description'] . "\n";
+
+  $curl_handle = curl_init('http://support.lib.unb.ca/api.asp?cmd=forward');
+  curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, TRUE);
+  curl_setopt($curl_handle, CURLOPT_POST, TRUE);
+  $ch_post_data = array(
+    'token' => $token,
+    'ixBug' => $ticket_information['case_id'],
+    'sFrom' => 'libsystems@unb.ca',
+    'sTo' => $ticket_information['email'],
+    'sSubject' => 'Your Design Request has been submitted (Case ' . $ticket_information['case_id'] . ')',
+    'sEvent' => $message,
+  );
+  curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $ch_post_data);
+  curl_exec($curl_handle);
+  curl_close($curl_handle);
+}
