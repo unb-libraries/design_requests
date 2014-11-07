@@ -129,11 +129,15 @@ function _design_request_form($form, &$form_state) {
     p.description {
       margin-bottom: 35px;
     }
+    p.instructions {
+      margin-bottom: 20px;
+    }
   ', 'inline');
 
   $form['supervisor_approved'] = array(
     '#type' => 'checkbox',
     '#title' => 'Unit manager is aware of and supports this request.',
+    '#prefix' => '<p class="instructions">To request Graphic Design, please complete and submit this form. A confirmation email will be sent upon receipt. If there are any follow up questions, or if consultation is required, you will be notified. Please note that requests will be done in order of date submitted and priority may be given to certain projects. Once the request is approved, one draft will be provided for which revisions can be made. The final graphic will be received by the agreed-upon deadline.</p>',
     '#required' => TRUE,
   );
 
@@ -197,21 +201,21 @@ function _design_request_form($form, &$form_state) {
     $form['form-container']['project']['graphic_material'] = array(
       '#type' => 'textarea',
       '#title' => 'Graphic material request',
-      '#suffix' => '<p class="description">(i.e., Brochure, poster, website design, image, etc.)</p>',
+      '#suffix' => '<p class="description">(Format of product. i.e., brochure, poster, website design, image, etc.)</p>',
       '#required' => TRUE,
     );
 
     $form['form-container']['project']['content'] = array(
       '#type' => 'textarea',
       '#title' => 'Content',
-      '#suffix' => '<p class="description">(Provide necessary: images, logos, date, text, themes, sizes, etc.)</p>',
+      '#suffix' => '<p class="description">(Content to be included in the product. Please provide necessary: images, logos, date, text, themes, sizes, etc.)</p>',
       '#required' => TRUE,
     );
 
     $form['form-container']['project']['target'] = array(
       '#type' => 'textarea',
       '#title' => 'Target Audience',
-      '#suffix' => '<p class="description">(i.e., Faculty, students, general public, UNB/STU, etc.)</p>',
+      '#description' => 'i.e., Faculty, students, general public, UNB/STU, etc.',
       '#required' => TRUE,
     );
 
@@ -242,7 +246,6 @@ function _design_request_form($form, &$form_state) {
       '#title' => 'Submit',
       '#value' => 'Submit',
       '#submit' => array('_design_request_submit'),
-      '#prefix' => '<p>Please note: Once the request is approved, 1 draft will be provided for which revisions can be made. The final graphic will be received by the agreed-upon deadline.</p>',
     );
 
   return $form;
