@@ -236,7 +236,7 @@ function _design_request_form($form, &$form_state) {
         '#title' => 'File ' . $i,
         '#title_display' => 'invisible',
         '#type' => 'managed_file',
-        '#upload_location' => 'public://',
+        '#upload_location' => 'public://design_requests',
         '#upload_validators'  => array('file_validate_extensions' => array('png gif jpg doc docx pdf zip')),
       );
     }
