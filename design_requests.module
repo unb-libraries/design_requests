@@ -355,7 +355,7 @@ function _design_request_create_fogbugz_ticket($token, $form_state) {
       $file_count++;
       $file = file_load($fid);
       $file_uri = drupal_realpath($file->uri);
-      $ch_post_data['File' . $file_count] = '@' . $file_uri;
+      $ch_post_data['File' . $file_count] = new CurlFile($file_uri);
     }
   }
   $ch_post_data['nFileCount'] = $file_count;
